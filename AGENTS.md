@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Staff login maps NP to a synthetic email (src/lib/np.ts); passwords are set via the service-role-only admin_set_password SQL function so short PINs bypass the auth minimum length.
