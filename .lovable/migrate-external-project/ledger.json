@@ -1,8 +1,8 @@
 [
-  {"capability":"code","source":"TanStack Start app (index, suporte routes)","outcome":"migrate","status":"in_progress","next_action":"copy source"},
-  {"capability":"schema","source":"drizzle/migrations/0000_migration.sql","outcome":"migrate","status":"pending","next_action":"apply to Lovable Cloud"},
-  {"capability":"records","source":"tickets, user_roles","outcome":"migrate","status":"pending","next_action":"request CSV export after preview"},
-  {"capability":"auth","source":"email/password support staff","outcome":"migrate","status":"pending","next_action":"Cloud auth; users re-register/reset password"},
-  {"capability":"authorization","source":"has_role RLS","outcome":"migrate","status":"pending","next_action":"apply policies"},
-  {"capability":"verification","source":"-","outcome":"migrate","status":"pending","next_action":"test flows"}
+  {"capability":"code","source":"TanStack Start app (/, /suporte, staff admin)","outcome":"migrate","status":"done","next_action":"none"},
+  {"capability":"schema","source":"drizzle/migrations/0000_migration.sql","outcome":"migrate","status":"done","next_action":"none"},
+  {"capability":"records","source":"tickets, user_roles","outcome":"migrate","status":"pending","next_action":"user supplies CSV export or skips"},
+  {"capability":"auth","source":"NP + password staff accounts (admin-created)","outcome":"migrate","status":"pending","next_action":"first admin set up on /suporte; recreate staff via admin panel"},
+  {"capability":"authorization","source":"has_role RLS","outcome":"migrate","status":"verified","next_action":"anon cannot read tickets (checked)"},
+  {"capability":"verification","source":"ticket submit","outcome":"migrate","status":"verified","next_action":"staff sign-in pending first admin"}
 ]
