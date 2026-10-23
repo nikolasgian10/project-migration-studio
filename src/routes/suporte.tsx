@@ -84,8 +84,8 @@ function Login() {
   return (
     <form className="mx-auto max-w-sm space-y-4 rounded-lg border bg-card p-6" onSubmit={(e) => { e.preventDefault(); go(); }}>
       <h2 className="text-lg font-semibold">Entrar</h2>
-      <div><Label>NP</Label><Input className="mt-1 font-mono" inputMode="numeric" autoComplete="username" value={np} onChange={(e) => setNp(e.target.value)} /></div>
-      <div><Label>Senha</Label><Input className="mt-1" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} /></div>
+      <div><Label htmlFor="np">NP</Label><Input id="np" className="mt-1 font-mono" inputMode="numeric" autoComplete="username" value={np} onChange={(e) => setNp(e.target.value)} /></div>
+      <div><Label htmlFor="pw">Senha</Label><Input id="pw" className="mt-1" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} /></div>
       <Button type="submit" className="w-full" disabled={busy || !np || !password}>{busy ? "Entrando..." : "Entrar"}</Button>
     </form>
   );
