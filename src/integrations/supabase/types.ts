@@ -14,16 +14,94 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      tickets: {
+        Row: {
+          assignee: string | null
+          computer_name: string
+          created_at: string
+          description: string | null
+          details: Json
+          id: string
+          number: number
+          requester_name: string | null
+          status: string
+          support_notes: string | null
+          ticket_type: string
+          updated_at: string
+        }
+        Insert: {
+          assignee?: string | null
+          computer_name: string
+          created_at?: string
+          description?: string | null
+          details?: Json
+          id?: string
+          number?: never
+          requester_name?: string | null
+          status?: string
+          support_notes?: string | null
+          ticket_type: string
+          updated_at?: string
+        }
+        Update: {
+          assignee?: string | null
+          computer_name?: string
+          created_at?: string
+          description?: string | null
+          details?: Json
+          id?: string
+          number?: never
+          requester_name?: string | null
+          status?: string
+          support_notes?: string | null
+          ticket_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_ticket: {
+        Args: {
+          _computer_name: string
+          _description: string
+          _details: Json
+          _requester_name: string
+          _ticket_type: string
+        }
+        Returns: number
+      }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "support"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +228,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "support"],
+    },
   },
 } as const
