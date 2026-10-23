@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { TICKET_TYPES, detectComputerName, type TicketType } from "@/lib/tickets";
 import { ComputerOpenTickets } from "@/components/computer-open-tickets";
+import { BrandLogos } from "@/components/brand-logos";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -93,6 +94,7 @@ function Index() {
       <header className="header-band">
         <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-6">
           <div>
+            <BrandLogos className="mb-4" />
             <p className="font-mono text-xs uppercase tracking-widest opacity-80">Q-DAS · Suporte</p>
             <h1 className="text-2xl font-semibold">Abertura de chamado</h1>
           </div>
