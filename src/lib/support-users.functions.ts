@@ -17,11 +17,14 @@ async function createAccount(c: Cred, roles: ("admin" | "support")[]) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data, error } = await supabaseAdmin.auth.admin.createUser({
     email: npToEmail(c.np),
-    password: c.password,
+    // short passwords (e.g. 4 digits) are below the auth minimum: create with a random one, then set the real one
+    password: crypto.randomUUID(),
     email_confirm: true,
     user_metadata: { np: c.np, name: c.name },
   });
   if (error) throw new Error(error.message.includes("already") ? "Este NP já tem acesso." : error.message);
+  const { error: pwErr } = await supabaseAdmin.rpc("admin_set_password", { _user_id: data.user.id, _password: c.password });
+  if (pwErr) throw new Error(pwErr.message);
   await supabaseAdmin.from("user_roles").upsert(
     roles.map((role) => ({ user_id: data.user.id, role })),
     { onConflict: "user_id,role" },
