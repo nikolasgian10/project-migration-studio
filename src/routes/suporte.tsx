@@ -79,7 +79,7 @@ function Login() {
     setBusy(true);
     const { error } = await supabase.auth.signInWithPassword({ email: npToEmail(n), password });
     setBusy(false);
-    if (error) toast.error("NP ou senha incorretos.");
+    if (error) toast.error(/fetch|network/i.test(error.message) || error.name === "AuthRetryableFetchError" ? "Sem conexão com o servidor. Verifique sua rede (firewall/VPN da empresa pode estar bloqueando)." : "NP ou senha incorretos.");
   }
   return (
     <form className="mx-auto max-w-sm space-y-4 rounded-lg border bg-card p-6" onSubmit={(e) => { e.preventDefault(); go(); }}>
