@@ -7,7 +7,7 @@ export function computerOpenTicketsOptions(computer: string) {
     queryKey: ["computer-open-tickets", normalized],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase.rpc("get_computer_open_tickets", {
+        const { data, error } = await supabase.rpc("get_computer_tickets", {
           _computer_name: normalized,
         });
         return { tickets: data ?? [], failed: Boolean(error) };

@@ -22,6 +22,13 @@
       "when": 1792761881284,
       "tag": "0002_computer_open_ticket_summaries",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792763776932,
+      "tag": "0003_computer_ticket_history",
+      "breakpoints": true
     }
   ]
 }

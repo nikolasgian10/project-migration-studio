@@ -9,7 +9,7 @@ describe("consulta de chamados do computador selecionado", () => {
     rpc.mockResolvedValueOnce({ data: [{ number: 42, status: "aberto" }], error: null });
     const options = computerOpenTicketsOptions(" pc-42 ");
     const result = await (options.queryFn as () => Promise<unknown>)();
-    expect(rpc).toHaveBeenCalledWith("get_computer_open_tickets", { _computer_name: "PC-42" });
+    expect(rpc).toHaveBeenCalledWith("get_computer_tickets", { _computer_name: "PC-42" });
     expect(options.queryKey).toEqual(["computer-open-tickets", "PC-42"]);
     expect(result).toEqual({ tickets: [{ number: 42, status: "aberto" }], failed: false });
   });
