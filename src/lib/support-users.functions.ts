@@ -7,8 +7,10 @@ type Cred = { np: string; password: string; name?: string };
 function validate(d: Cred): Cred {
   const np = normalizeNp(d?.np ?? "");
   if (!np) throw new Error("NP inválido (use letras e números).");
-  if (typeof d.password !== "string" || d.password.length < 8) throw new Error("A senha deve ter pelo menos 8 caracteres.");
-  return { np, password: d.password, name: (d.name ?? "").slice(0, 100) };
+  if (typeof d.password !== "string" || d.password.length < 4) throw new Error("A senha deve ter pelo menos 4 caracteres.");
+  const name = (d.name ?? "").trim().slice(0, 100);
+  if (!name) throw new Error("Informe o nome.");
+  return { np, password: d.password, name };
 }
 
 async function createAccount(c: Cred, roles: ("admin" | "support")[]) {
