@@ -1,24 +1,180 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { Monitor, CheckCircle2, Headset } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { TICKET_TYPES, detectComputerName, type TicketType } from "@/lib/tickets";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "Abrir chamado Q-DAS" },
+      { name: "description", content: "Abra um chamado de suporte para o sistema Q-DAS." },
+      { property: "og:title", content: "Abrir chamado Q-DAS" },
+      { property: "og:description", content: "Abra um chamado de suporte para o sistema Q-DAS." },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
+    ],
+  }),
   component: Index,
 });
 
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
+const FIELDS: Partial<Record<TicketType, { key: string; label: string }[]>> = {
+  instalacao: [
+    { key: "mini_fabrica", label: "Mini fábrica" },
+    { key: "computer_name_maquina", label: "Computer name da máquina" },
+    { key: "operacao", label: "Operação" },
+    { key: "bp", label: "BP da máquina" },
+  ],
+  usuario_sem_acesso: [{ key: "usuario", label: "Usuário (nome ou NP)" }],
+  criacao_usuario: [
+    { key: "nome", label: "Nome" },
+    { key: "np", label: "NP" },
+    { key: "operacao_departamento", label: "Operação / Departamento" },
+  ],
+};
+
 function Index() {
+  const [detected, setDetected] = useState("");
+  const [mode, setMode] = useState<"this" | "other">("this");
+  const [other, setOther] = useState("");
+  const [type, setType] = useState<TicketType | null>(null);
+  const [details, setDetails] = useState<Record<string, string>>({});
+  const [requester, setRequester] = useState("");
+  const [description, setDescription] = useState("");
+  const [sending, setSending] = useState(false);
+  const [done, setDone] = useState<number | null>(null);
+
+  useEffect(() => {
+    const name = detectComputerName(window.location.search, localStorage.getItem("qdas_pc"));
+    setDetected(name);
+    if (name) localStorage.setItem("qdas_pc", name);
+    else setMode("other");
+  }, []);
+
+  const computer = (mode === "this" ? detected : other).trim().toUpperCase();
+  const fields = type ? FIELDS[type] ?? [] : [];
+  const valid =
+    computer && type && fields.every((f) => details[f.key]?.trim()) && (type !== "mascara_errada" || description.trim());
+
+  async function submit() {
+    if (!valid || !type) return;
+    setSending(true);
+    const clean = Object.fromEntries(fields.map((f) => [f.key, (details[f.key] ?? "").trim()]));
+    const { data, error } = await supabase.rpc("create_ticket", {
+      _computer_name: computer,
+      _ticket_type: type,
+      _requester_name: requester,
+      _description: description,
+      _details: clean,
+    });
+    setSending(false);
+    if (error) { toast.error("Não foi possível abrir o chamado: " + error.message); return; }
+    setDone(data as number);
+  }
+
+  function reset() {
+    setDone(null); setType(null); setDetails({}); setDescription("");
+  }
+
   return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
+    <div className="min-h-screen">
+      <header className="header-band">
+        <div className="mx-auto flex max-w-3xl items-center justify-between px-6 py-6">
+          <div>
+            <p className="font-mono text-xs uppercase tracking-widest opacity-80">Q-DAS · Suporte</p>
+            <h1 className="text-2xl font-semibold">Abertura de chamado</h1>
+          </div>
+          <Link to="/suporte" className="flex items-center gap-2 text-sm opacity-90 hover:opacity-100">
+            <Headset className="h-4 w-4" /> Área do suporte
+          </Link>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-3xl px-6 py-8">
+        {done !== null ? (
+          <div className="rounded-lg border bg-card p-10 text-center">
+            <CheckCircle2 className="mx-auto h-12 w-12 text-success" />
+            <h2 className="mt-4 text-xl font-semibold">Chamado aberto!</h2>
+            <p className="mt-2 text-muted-foreground">Número do chamado</p>
+            <p className="font-mono text-4xl font-medium text-primary">#{done}</p>
+            <Button className="mt-6" onClick={reset}>Abrir outro chamado</Button>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <section className="rounded-lg border bg-card p-6">
+              <h2 className="mb-4 font-semibold">1. Computador</h2>
+              <RadioGroup value={mode} onValueChange={(v) => setMode(v as "this" | "other")} className="gap-3">
+                <label className={`flex items-center gap-3 rounded-md border p-4 ${!detected ? "opacity-50" : "cursor-pointer"}`}>
+                  <RadioGroupItem value="this" disabled={!detected} />
+                  <Monitor className="h-5 w-5 text-primary" />
+                  <div>
+                    <p className="text-sm text-muted-foreground">Este computador</p>
+                    <p className="font-mono font-medium">{detected || "Não identificado automaticamente"}</p>
+                  </div>
+                </label>
+                <label className="flex cursor-pointer items-center gap-3 rounded-md border p-4">
+                  <RadioGroupItem value="other" />
+                  <span className="text-sm font-medium">Outro computador</span>
+                </label>
+              </RadioGroup>
+              {mode === "other" && (
+                <div className="mt-4">
+                  <Label htmlFor="pc">Computer name</Label>
+                  <Input id="pc" className="mt-1 font-mono uppercase" maxLength={64} value={other}
+                    onChange={(e) => setOther(e.target.value)} placeholder="Ex.: BRCPS-QD0123" />
+                </div>
+              )}
+            </section>
+
+            {computer && (
+              <section className="rounded-lg border bg-card p-6">
+                <h2 className="mb-4 font-semibold">2. Tipo de chamado</h2>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {(Object.keys(TICKET_TYPES) as TicketType[]).map((t) => (
+                    <button key={t} type="button" onClick={() => { setType(t); setDetails({}); }}
+                      className={`rounded-md border p-4 text-left transition ${type === t ? "border-primary bg-primary/5 ring-2 ring-primary" : "hover:border-primary/50"}`}>
+                      <p className="font-medium">{TICKET_TYPES[t].label}</p>
+                      <p className="text-sm text-muted-foreground">{TICKET_TYPES[t].hint}</p>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {computer && type && (
+              <section className="space-y-4 rounded-lg border bg-card p-6">
+                <h2 className="font-semibold">3. Informações</h2>
+                {fields.map((f) => (
+                  <div key={f.key}>
+                    <Label>{f.label} *</Label>
+                    <Input className="mt-1" maxLength={120} value={details[f.key] ?? ""}
+                      onChange={(e) => setDetails({ ...details, [f.key]: e.target.value })} />
+                  </div>
+                ))}
+                <div>
+                  <Label>Seu nome (solicitante)</Label>
+                  <Input className="mt-1" maxLength={120} value={requester} onChange={(e) => setRequester(e.target.value)} />
+                </div>
+                <div>
+                  <Label>Descrição {type === "mascara_errada" ? "*" : "(opcional)"}</Label>
+                  <Textarea className="mt-1" maxLength={2000} rows={4} value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder={type === "mascara_errada" ? "Qual máscara está errada e o que deveria aparecer?" : ""} />
+                </div>
+                <Button size="lg" className="w-full" disabled={!valid || sending} onClick={submit}>
+                  {sending ? "Enviando..." : "Abrir chamado"}
+                </Button>
+              </section>
+            )}
+          </div>
+        )}
+      </main>
     </div>
   );
 }
