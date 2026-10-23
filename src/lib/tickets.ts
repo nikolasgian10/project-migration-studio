@@ -1,5 +1,5 @@
 export type TicketType = "instalacao" | "mascara_errada" | "usuario_sem_acesso" | "criacao_usuario" | "outros";
-export type TicketStatus = "aberto" | "em_andamento" | "resolvido" | "cancelado";
+export type TicketStatus = "aberto" | "em_analise" | "em_andamento" | "em_execucao" | "resolvido" | "cancelado";
 
 export const TICKET_TYPES: Record<TicketType, { label: string; hint: string }> = {
   instalacao: { label: "Solicitar instalação", hint: "Instalar o Q-DAS em uma máquina" },
@@ -11,7 +11,9 @@ export const TICKET_TYPES: Record<TicketType, { label: string; hint: string }> =
 
 export const STATUS_LABEL: Record<TicketStatus, string> = {
   aberto: "Aberto",
+  em_analise: "Em análise",
   em_andamento: "Em andamento",
+  em_execucao: "Em execução",
   resolvido: "Resolvido",
   cancelado: "Cancelado",
 };
