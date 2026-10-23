@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Monitor, CheckCircle2, Headset } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { TICKET_TYPES, detectComputerName, type TicketType } from "@/lib/tickets";
+import { ComputerOpenTickets } from "@/components/computer-open-tickets";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -49,6 +50,7 @@ function Index() {
   const [description, setDescription] = useState("");
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState<number | null>(null);
+  const [lookupComputer, setLookupComputer] = useState("");
 
   useEffect(() => {
     const name = detectComputerName(window.location.search, localStorage.getItem("qdas_pc"));
@@ -58,6 +60,10 @@ function Index() {
   }, []);
 
   const computer = (mode === "this" ? detected : other).trim().toUpperCase();
+  useEffect(() => {
+    const timer = window.setTimeout(() => setLookupComputer(computer), 350);
+    return () => window.clearTimeout(timer);
+  }, [computer]);
   const fields = type ? FIELDS[type] ?? [] : [];
   const valid =
     computer && type && fields.every((f) => details[f.key]?.trim()) && (type !== "mascara_errada" || description.trim());
@@ -131,6 +137,20 @@ function Index() {
                 </div>
               )}
             </section>
+
+            {computer && (
+              <section className="border-t pt-5" aria-labelledby="open-tickets-heading">
+                <h2 id="open-tickets-heading" className="font-semibold">Chamados em aberto</h2>
+                <p className="mb-2 break-all font-mono text-sm text-muted-foreground">{computer}</p>
+                {lookupComputer !== computer ? (
+                  <p role="status" className="text-sm text-muted-foreground">Consultando chamados...</p>
+                ) : (
+                  <Suspense fallback={<p role="status" className="text-sm text-muted-foreground">Consultando chamados...</p>}>
+                    <ComputerOpenTickets key={computer} computer={computer} />
+                  </Suspense>
+                )}
+              </section>
+            )}
 
             {computer && (
               <section className="rounded-lg border bg-card p-6">

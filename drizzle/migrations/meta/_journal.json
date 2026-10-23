@@ -15,6 +15,13 @@
       "when": 1792760294550,
       "tag": "0001_admin_set_password",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792761881284,
+      "tag": "0002_computer_open_ticket_summaries",
+      "breakpoints": true
     }
   ]
 }

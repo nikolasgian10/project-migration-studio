@@ -96,6 +96,15 @@ export type Database = {
         }
         Returns: number
       }
+      get_computer_open_tickets: {
+        Args: { _computer_name: string }
+        Returns: {
+          created_at: string
+          number: number
+          status: string
+          ticket_type: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

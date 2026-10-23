@@ -1,0 +1,2 @@
+- [x] Exibir resumo seguro dos chamados em aberto e em andamento do computador selecionado.
+- [x] Verificar consulta, isolamento por computador e exibição na página.
