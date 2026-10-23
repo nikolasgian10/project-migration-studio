@@ -1,4 +1,4 @@
-export type TicketType = "instalacao" | "mascara_errada" | "usuario_sem_acesso" | "criacao_usuario";
+export type TicketType = "instalacao" | "mascara_errada" | "usuario_sem_acesso" | "criacao_usuario" | "outros";
 export type TicketStatus = "aberto" | "em_andamento" | "resolvido" | "cancelado";
 
 export const TICKET_TYPES: Record<TicketType, { label: string; hint: string }> = {
@@ -6,6 +6,7 @@ export const TICKET_TYPES: Record<TicketType, { label: string; hint: string }> =
   mascara_errada: { label: "Máscara errada", hint: "Máscara de entrada/relatório incorreta" },
   usuario_sem_acesso: { label: "Usuário específico sem acesso", hint: "Um usuário não consegue acessar" },
   criacao_usuario: { label: "Criação de usuário", hint: "Novo usuário no Q-DAS" },
+  outros: { label: "Outros", hint: "Qualquer outra solicitação" },
 };
 
 export const STATUS_LABEL: Record<TicketStatus, string> = {
