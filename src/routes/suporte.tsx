@@ -37,7 +37,9 @@ type Ticket = {
 
 const STATUS_STYLE: Record<string, string> = {
   aberto: "bg-accent text-accent-foreground",
+  em_analise: "bg-secondary text-secondary-foreground",
   em_andamento: "bg-primary text-primary-foreground",
+  em_execucao: "bg-primary/80 text-primary-foreground",
   resolvido: "bg-success text-primary-foreground",
   cancelado: "bg-muted text-muted-foreground",
 };
@@ -152,7 +154,7 @@ function Board({ session }: { session: Session }) {
   }, [session.user.id, load]);
 
   const list = useMemo(() => tickets.filter((t) =>
-    (status === "todos" || (status === "ativos" ? ["aberto", "em_andamento"].includes(t.status) : t.status === status)) &&
+    (status === "todos" || (status === "ativos" ? !["resolvido", "cancelado"].includes(t.status) : t.status === status)) &&
     (type === "todos" || t.ticket_type === type) &&
     (!q || `${t.number} ${t.computer_name} ${t.requester_name ?? ""} ${JSON.stringify(t.details)}`.toLowerCase().includes(q.toLowerCase()))
   ), [tickets, status, type, q]);
@@ -173,7 +175,7 @@ function Board({ session }: { session: Session }) {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {(Object.keys(STATUS_LABEL) as TicketStatus[]).map((s) => (
           <button key={s} onClick={() => setStatus(s)} className={`rounded-lg border bg-card p-4 text-left ${status === s ? "ring-2 ring-primary" : ""}`}>
             <p className="text-sm text-muted-foreground">{STATUS_LABEL[s]}</p>
