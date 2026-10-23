@@ -142,7 +142,7 @@ function Index() {
 
             {computer && (
               <section className="border-t pt-5" aria-labelledby="open-tickets-heading">
-                <h2 id="open-tickets-heading" className="font-semibold">Chamados em aberto</h2>
+                <h2 id="open-tickets-heading" className="font-semibold">Chamados deste computador</h2>
                 <p className="mb-2 break-all font-mono text-sm text-muted-foreground">{computer}</p>
                 {lookupComputer !== computer ? (
                   <p role="status" className="text-sm text-muted-foreground">Consultando chamados...</p>
