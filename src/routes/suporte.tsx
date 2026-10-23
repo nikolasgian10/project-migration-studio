@@ -10,6 +10,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { normalizeNp, npToEmail } from "@/lib/np";
+import { listSupportUsers, createSupportUser, removeSupportUser } from "@/lib/support-users.functions";
 import { DETAIL_LABEL, STATUS_LABEL, TICKET_TYPES, type TicketStatus, type TicketType } from "@/lib/tickets";
 
 export const Route = createFileRoute("/suporte")({
@@ -68,34 +70,64 @@ function Suporte() {
 }
 
 function Login() {
-  const [email, setEmail] = useState("");
+  const [np, setNp] = useState("");
   const [password, setPassword] = useState("");
-  const [signup, setSignup] = useState(false);
   const [busy, setBusy] = useState(false);
   async function go() {
+    const n = normalizeNp(np);
+    if (!n) { toast.error("NP inválido."); return; }
     setBusy(true);
-    const { error } = signup
-      ? await supabase.auth.signUp({ email, password, options: { emailRedirectTo: window.location.origin + "/suporte" } })
-      : await supabase.auth.signInWithPassword({ email, password });
+    const { error } = await supabase.auth.signInWithPassword({ email: npToEmail(n), password });
     setBusy(false);
-    if (error) { toast.error(error.message); return; }
-    if (signup) toast.success("Conta criada. Confirme pelo e-mail recebido.");
+    if (error) toast.error("NP ou senha incorretos.");
   }
   return (
-    <div className="mx-auto max-w-sm space-y-4 rounded-lg border bg-card p-6">
-      <h2 className="text-lg font-semibold">{signup ? "Criar conta de suporte" : "Entrar"}</h2>
-      <div><Label>E-mail</Label><Input className="mt-1" type="email" value={email} onChange={(e) => setEmail(e.target.value)} /></div>
-      <div><Label>Senha</Label><Input className="mt-1" type="password" value={password} onChange={(e) => setPassword(e.target.value)} /></div>
-      <Button className="w-full" disabled={busy || !email || password.length < 6} onClick={go}>{signup ? "Criar conta" : "Entrar"}</Button>
-      <button className="w-full text-sm text-muted-foreground hover:text-foreground" onClick={() => setSignup(!signup)}>
-        {signup ? "Já tenho conta" : "Criar conta"}
-      </button>
-    </div>
+    <form className="mx-auto max-w-sm space-y-4 rounded-lg border bg-card p-6" onSubmit={(e) => { e.preventDefault(); go(); }}>
+      <h2 className="text-lg font-semibold">Entrar</h2>
+      <div><Label htmlFor="np">NP</Label><Input id="np" className="mt-1 font-mono" inputMode="numeric" autoComplete="username" value={np} onChange={(e) => setNp(e.target.value)} /></div>
+      <div><Label htmlFor="pw">Senha</Label><Input id="pw" className="mt-1" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} /></div>
+      <Button type="submit" className="w-full" disabled={busy || !np || !password}>{busy ? "Entrando..." : "Entrar"}</Button>
+    </form>
+  );
+}
+
+function Users({ meId }: { meId: string }) {
+  const [list, setList] = useState<{ id: string; np: string; name: string; admin: boolean }[]>([]);
+  const [name, setName] = useState(""); const [np, setNp] = useState(""); const [pw, setPw] = useState(""); const [admin, setAdmin] = useState(false);
+  const load = useCallback(() => listSupportUsers().then(setList).catch((e) => toast.error(e.message)), []);
+  useEffect(() => { load(); }, [load]);
+  async function add() {
+    try { await createSupportUser({ data: { name, np, password: pw, admin } }); toast.success("Usuário criado"); setName(""); setNp(""); setPw(""); setAdmin(false); load(); }
+    catch (e) { toast.error((e as Error).message); }
+  }
+  async function remove(id: string) {
+    if (!confirm("Remover este acesso?")) return;
+    try { await removeSupportUser({ data: { id } }); load(); } catch (e) { toast.error((e as Error).message); }
+  }
+  return (
+    <section className="space-y-4 rounded-lg border bg-card p-6">
+      <h2 className="font-semibold">Usuários do suporte</h2>
+      <div className="flex flex-wrap items-end gap-3">
+        <div><Label>Nome</Label><Input className="mt-1 w-56" value={name} onChange={(e) => setName(e.target.value)} /></div>
+        <div><Label>NP</Label><Input className="mt-1 w-36 font-mono" value={np} onChange={(e) => setNp(e.target.value)} /></div>
+        <div><Label>Senha</Label><Input className="mt-1 w-36" type="password" value={pw} onChange={(e) => setPw(e.target.value)} /></div>
+        <label className="flex items-center gap-2 pb-2 text-sm"><input type="checkbox" checked={admin} onChange={(e) => setAdmin(e.target.checked)} /> Administrador</label>
+        <Button onClick={add} disabled={!name.trim() || !np.trim() || pw.length < 4}>Criar usuário</Button>
+      </div>
+      <table className="w-full text-sm">
+        <thead className="text-left text-muted-foreground"><tr><th className="p-2">Nome</th><th className="p-2">NP</th><th className="p-2">Perfil</th><th /></tr></thead>
+        <tbody>{list.map((u) => (
+          <tr key={u.id} className="border-t"><td className="p-2">{u.name || "—"}</td><td className="p-2 font-mono">{u.np}</td><td className="p-2">{u.admin ? "Administrador" : "Suporte"}</td>
+            <td className="p-2 text-right">{u.id !== meId && <Button variant="outline" size="sm" onClick={() => remove(u.id)}>Remover</Button>}</td></tr>
+        ))}</tbody>
+      </table>
+    </section>
   );
 }
 
 function Board({ session }: { session: Session }) {
   const [isSupport, setIsSupport] = useState<boolean | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [status, setStatus] = useState<string>("ativos");
   const [type, setType] = useState<string>("todos");
@@ -109,10 +141,11 @@ function Board({ session }: { session: Session }) {
   }, []);
 
   useEffect(() => {
+    // roles and tickets load in parallel (RLS returns no tickets to non-support users)
+    load();
     supabase.from("user_roles").select("role").eq("user_id", session.user.id).then(({ data }) => {
-      const ok = !!data?.some((r) => r.role === "support");
-      setIsSupport(ok);
-      if (ok) load();
+      setIsSupport(!!data?.some((r) => r.role === "support"));
+      setIsAdmin(!!data?.some((r) => r.role === "admin"));
     });
   }, [session.user.id, load]);
 
@@ -189,7 +222,9 @@ function Board({ session }: { session: Session }) {
         </table>
       </div>
 
-      {open && <TicketDialog ticket={open} me={session.user.email ?? ""} onClose={() => setOpen(null)} onSaved={() => { setOpen(null); load(); }} />}
+      {isAdmin && <Users meId={session.user.id} />}
+
+      {open && <TicketDialog ticket={open} me={String(session.user.user_metadata?.["name"] || session.user.user_metadata?.["np"] || "")} onClose={() => setOpen(null)} onSaved={() => { setOpen(null); load(); }} />}
     </div>
   );
 }

@@ -7,19 +7,24 @@ type Cred = { np: string; password: string; name?: string };
 function validate(d: Cred): Cred {
   const np = normalizeNp(d?.np ?? "");
   if (!np) throw new Error("NP inválido (use letras e números).");
-  if (typeof d.password !== "string" || d.password.length < 8) throw new Error("A senha deve ter pelo menos 8 caracteres.");
-  return { np, password: d.password, name: (d.name ?? "").slice(0, 100) };
+  if (typeof d.password !== "string" || d.password.length < 4) throw new Error("A senha deve ter pelo menos 4 caracteres.");
+  const name = (d.name ?? "").trim().slice(0, 100);
+  if (!name) throw new Error("Informe o nome.");
+  return { np, password: d.password, name };
 }
 
 async function createAccount(c: Cred, roles: ("admin" | "support")[]) {
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
   const { data, error } = await supabaseAdmin.auth.admin.createUser({
     email: npToEmail(c.np),
-    password: c.password,
+    // short passwords (e.g. 4 digits) are below the auth minimum: create with a random one, then set the real one
+    password: crypto.randomUUID(),
     email_confirm: true,
     user_metadata: { np: c.np, name: c.name },
   });
   if (error) throw new Error(error.message.includes("already") ? "Este NP já tem acesso." : error.message);
+  const { error: pwErr } = await supabaseAdmin.rpc("admin_set_password", { _user_id: data.user.id, _password: c.password });
+  if (pwErr) throw new Error(pwErr.message);
   await supabaseAdmin.from("user_roles").upsert(
     roles.map((role) => ({ user_id: data.user.id, role })),
     { onConflict: "user_id,role" },
