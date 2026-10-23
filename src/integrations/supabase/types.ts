@@ -82,6 +82,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_set_password: {
+        Args: { _password: string; _user_id: string }
+        Returns: undefined
+      }
       create_ticket: {
         Args: {
           _computer_name: string
