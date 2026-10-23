@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { normalizeNp, npToEmail } from "@/lib/np";
 import { listSupportUsers, createSupportUser, removeSupportUser } from "@/lib/support-users.functions";
 import { DETAIL_LABEL, STATUS_LABEL, TICKET_TYPES, type TicketStatus, type TicketType } from "@/lib/tickets";
+import { BrandLogos } from "@/components/brand-logos";
 
 export const Route = createFileRoute("/suporte")({
   head: () => ({
@@ -55,6 +56,7 @@ function Suporte() {
       <header className="header-band">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-6">
           <div>
+            <BrandLogos className="mb-4" />
             <p className="font-mono text-xs uppercase tracking-widest opacity-80">Q-DAS · Suporte</p>
             <h1 className="text-2xl font-semibold">Gestão de chamados</h1>
           </div>
