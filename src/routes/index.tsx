@@ -184,10 +184,10 @@ function Index() {
                   <Input className="mt-1" maxLength={120} value={requester} onChange={(e) => setRequester(e.target.value)} />
                 </div>
                 <div>
-                  <Label>Descrição {type === "mascara_errada" ? "*" : "(opcional)"}</Label>
+                  <Label>Descrição {needsDescription ? "*" : "(opcional)"}</Label>
                   <Textarea className="mt-1" maxLength={2000} rows={4} value={description}
                     onChange={(e) => setDescription(e.target.value)}
-                    placeholder={type === "mascara_errada" ? "Qual máscara está errada e o que deveria aparecer?" : ""} />
+                    placeholder={type === "mascara_errada" ? "Qual máscara está errada e o que deveria aparecer?" : type === "outros" ? "Descreva o que você precisa" : ""} />
                 </div>
                 <Button size="lg" className="w-full" disabled={!valid || sending} onClick={submit}>
                   {sending ? "Enviando..." : "Abrir chamado"}
