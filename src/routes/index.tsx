@@ -66,8 +66,8 @@ function Index() {
     return () => window.clearTimeout(timer);
   }, [computer]);
   const fields = type ? FIELDS[type] ?? [] : [];
-  const valid =
-    computer && type && fields.every((f) => details[f.key]?.trim()) && (type !== "mascara_errada" || description.trim());
+  const needsDescription = type === "mascara_errada" || type === "outros";
+  const valid = computer && type && fields.every((f) => details[f.key]?.trim()) && (!needsDescription || description.trim());
 
   async function submit() {
     if (!valid || !type) return;
