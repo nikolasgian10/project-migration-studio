@@ -39,7 +39,7 @@ export function ComputerOpenTickets({ computer }: { computer: string }) {
                 {STATUS_LABEL[ticket.status as TicketStatus] ?? ticket.status}
               </span>
             </div>
-            {(closed || ticket.support_notes?.trim()) && (
+            {(closed || ticket.status === "em_andamento" || ticket.support_notes?.trim()) && (
               <div className="mt-2 rounded-md bg-muted p-3 text-sm">
                 <p className="text-xs font-medium text-muted-foreground">Parecer do suporte</p>
                 <p className="mt-1 whitespace-pre-wrap break-words">{ticket.support_notes?.trim() || "Sem parecer registrado."}</p>
