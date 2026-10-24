@@ -136,6 +136,8 @@ function Board({ session }: { session: Session }) {
   const [status, setStatus] = useState<string>("ativos");
   const [type, setType] = useState<string>("todos");
   const [q, setQ] = useState("");
+  const [from, setFrom] = useState("");
+  const [to, setTo] = useState("");
   const [open, setOpen] = useState<Ticket | null>(null);
 
   const load = useCallback(async () => {
@@ -153,17 +155,23 @@ function Board({ session }: { session: Session }) {
     });
   }, [session.user.id, load]);
 
-  const list = useMemo(() => tickets.filter((t) =>
+  const inPeriod = useMemo(() => {
+    const start = from ? new Date(`${from}T00:00:00`).getTime() : -Infinity;
+    const end = to ? new Date(`${to}T23:59:59.999`).getTime() : Infinity;
+    return tickets.filter((t) => { const d = new Date(t.created_at).getTime(); return d >= start && d <= end; });
+  }, [tickets, from, to]);
+
+  const list = useMemo(() => inPeriod.filter((t) =>
     (status === "todos" || (status === "ativos" ? !["resolvido", "cancelado"].includes(t.status) : t.status === status)) &&
     (type === "todos" || t.ticket_type === type) &&
     (!q || `${t.number} ${t.computer_name} ${t.requester_name ?? ""} ${JSON.stringify(t.details)}`.toLowerCase().includes(q.toLowerCase()))
-  ), [tickets, status, type, q]);
+  ), [inPeriod, status, type, q]);
 
   const counts = useMemo(() => {
     const c: Record<string, number> = {};
-    tickets.forEach((t) => (c[t.status] = (c[t.status] ?? 0) + 1));
+    inPeriod.forEach((t) => (c[t.status] = (c[t.status] ?? 0) + 1));
     return c;
-  }, [tickets]);
+  }, [inPeriod]);
 
   if (isSupport === null) return null;
   if (!isSupport) return (
@@ -175,11 +183,18 @@ function Board({ session }: { session: Session }) {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
+      <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-card p-4">
+        <div><Label htmlFor="from">De</Label><Input id="from" type="date" className="mt-1 w-44" value={from} onChange={(e) => setFrom(e.target.value)} /></div>
+        <div><Label htmlFor="to">Até</Label><Input id="to" type="date" className="mt-1 w-44" value={to} onChange={(e) => setTo(e.target.value)} /></div>
+        {(from || to) && <Button variant="ghost" onClick={() => { setFrom(""); setTo(""); }}>Limpar período</Button>}
+        <p className="pb-2 text-sm text-muted-foreground">{inPeriod.length} chamado(s) no período</p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
         {SELECTABLE_STATUSES.map((s) => (
-          <button key={s} onClick={() => setStatus(s)} className={`rounded-lg border bg-card p-4 text-left ${status === s ? "ring-2 ring-primary" : ""}`}>
-            <p className="text-sm text-muted-foreground">{STATUS_LABEL[s]}</p>
-            <p className="font-mono text-3xl font-medium">{counts[s] ?? 0}</p>
+          <button key={s} onClick={() => setStatus(s)} className={`rounded-lg border bg-card p-6 text-left ${status === s ? "ring-2 ring-primary" : ""}`}>
+            <p className="text-base text-muted-foreground">{STATUS_LABEL[s]}</p>
+            <p className="mt-2 font-mono text-5xl font-medium">{counts[s] ?? 0}</p>
           </button>
         ))}
       </div>
