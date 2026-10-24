@@ -159,7 +159,7 @@ function Board({ session }: { session: Session }) {
   const inPeriod = useMemo(() => {
     const start = from ? new Date(`${from}T00:00:00`).getTime() : -Infinity;
     const end = to ? new Date(`${to}T23:59:59.999`).getTime() : Infinity;
-    return tickets.filter((t) => { const d = new Date(t.created_at).getTime(); return d >= start && d <= end && (mf === "todas" || t.details?.mini_fabrica === mf); });
+    return tickets.filter((t) => { const d = new Date(t.created_at).getTime(); return d >= start && d <= end && (mf === "todas" || t.details?.["mini_fabrica"] === mf); });
   }, [tickets, from, to, mf]);
 
   const list = useMemo(() => inPeriod.filter((t) =>
