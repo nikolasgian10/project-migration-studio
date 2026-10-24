@@ -18,6 +18,20 @@ export const STATUS_LABEL: Record<TicketStatus, string> = {
   cancelado: "Cancelado",
 };
 
+/** Status que o suporte pode escolher ("Em execução" foi retirado). */
+export const SELECTABLE_STATUSES: TicketStatus[] = ["aberto", "em_analise", "em_andamento", "resolvido", "cancelado"];
+
+/** Status que exigem parecer para o usuário. */
+export const STATUS_REQUIRES_NOTE: TicketStatus[] = ["em_andamento", "resolvido", "cancelado"];
+
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+
+/** Na tela do usuário: abertos sempre; resolvidos/cancelados só por 1 semana. */
+export function isVisibleToUser(t: { status: string; updated_at: string }, now = Date.now()): boolean {
+  if (t.status !== "resolvido" && t.status !== "cancelado") return true;
+  return now - new Date(t.updated_at).getTime() <= WEEK_MS;
+}
+
 export const DETAIL_LABEL: Record<string, string> = {
   mini_fabrica: "Mini fábrica",
   computer_name_maquina: "Computer name da máquina",

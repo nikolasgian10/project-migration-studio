@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TICKET_TYPES, detectComputerName, type TicketType } from "@/lib/tickets";
 import { ComputerOpenTickets } from "@/components/computer-open-tickets";
 import { BrandLogos } from "@/components/brand-logos";
@@ -33,10 +34,18 @@ const FIELDS: Partial<Record<TicketType, { key: string; label: string }[]>> = {
     { key: "operacao", label: "Operação" },
     { key: "bp", label: "BP da máquina" },
   ],
-  usuario_sem_acesso: [{ key: "usuario", label: "Usuário (nome ou NP)" }],
+  mascara_errada: [
+    { key: "mini_fabrica", label: "Mini fábrica" },
+    { key: "operacao", label: "Operação" },
+  ],
+  usuario_sem_acesso: [
+    { key: "usuario", label: "Usuário (nome ou NP)" },
+    { key: "operacao", label: "Operação" },
+  ],
   criacao_usuario: [
     { key: "nome", label: "Nome" },
     { key: "np", label: "NP" },
+    { key: "mini_fabrica", label: "Mini fábrica" },
     { key: "operacao_departamento", label: "Operação / Departamento" },
   ],
 };
@@ -157,15 +166,15 @@ function Index() {
             {computer && (
               <section className="rounded-lg border bg-card p-6">
                 <h2 className="mb-4 font-semibold">2. Tipo de chamado</h2>
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {(Object.keys(TICKET_TYPES) as TicketType[]).map((t) => (
-                    <button key={t} type="button" onClick={() => { setType(t); setDetails({}); }}
-                      className={`rounded-md border p-4 text-left transition ${type === t ? "border-primary bg-primary/5 ring-2 ring-primary" : "hover:border-primary/50"}`}>
-                      <p className="font-medium">{TICKET_TYPES[t].label}</p>
-                      <p className="text-sm text-muted-foreground">{TICKET_TYPES[t].hint}</p>
-                    </button>
-                  ))}
-                </div>
+                <Select value={type ?? ""} onValueChange={(v) => { setType(v as TicketType); setDetails({}); }}>
+                  <SelectTrigger aria-label="Tipo de chamado"><SelectValue placeholder="Selecione o tipo de chamado" /></SelectTrigger>
+                  <SelectContent>
+                    {(Object.keys(TICKET_TYPES) as TicketType[]).map((t) => (
+                      <SelectItem key={t} value={t}>{TICKET_TYPES[t].label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {type && <p className="mt-2 text-sm text-muted-foreground">{TICKET_TYPES[type].hint}</p>}
               </section>
             )}
 

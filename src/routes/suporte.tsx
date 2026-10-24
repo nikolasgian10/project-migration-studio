@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { normalizeNp, npToEmail } from "@/lib/np";
 import { listSupportUsers, createSupportUser, removeSupportUser } from "@/lib/support-users.functions";
-import { DETAIL_LABEL, STATUS_LABEL, TICKET_TYPES, type TicketStatus, type TicketType } from "@/lib/tickets";
+import { DETAIL_LABEL, SELECTABLE_STATUSES, STATUS_LABEL, STATUS_REQUIRES_NOTE, TICKET_TYPES, type TicketStatus, type TicketType } from "@/lib/tickets";
 import { BrandLogos } from "@/components/brand-logos";
 
 export const Route = createFileRoute("/suporte")({
@@ -176,7 +176,7 @@ function Board({ session }: { session: Session }) {
   return (
     <div className="space-y-6">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        {(Object.keys(STATUS_LABEL) as TicketStatus[]).map((s) => (
+        {SELECTABLE_STATUSES.map((s) => (
           <button key={s} onClick={() => setStatus(s)} className={`rounded-lg border bg-card p-4 text-left ${status === s ? "ring-2 ring-primary" : ""}`}>
             <p className="text-sm text-muted-foreground">{STATUS_LABEL[s]}</p>
             <p className="font-mono text-3xl font-medium">{counts[s] ?? 0}</p>
@@ -191,7 +191,7 @@ function Board({ session }: { session: Session }) {
           <SelectContent>
             <SelectItem value="ativos">Abertos + andamento</SelectItem>
             <SelectItem value="todos">Todos os status</SelectItem>
-            {Object.entries(STATUS_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
+            {SELECTABLE_STATUSES.map((k) => <SelectItem key={k} value={k}>{STATUS_LABEL[k]}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={type} onValueChange={setType}>
@@ -237,8 +237,10 @@ function TicketDialog({ ticket, me, onClose, onSaved }: { ticket: Ticket; me: st
   const [status, setStatus] = useState(ticket.status);
   const [assignee, setAssignee] = useState(ticket.assignee ?? "");
   const [notes, setNotes] = useState(ticket.support_notes ?? "");
+  const needsNote = STATUS_REQUIRES_NOTE.includes(status as TicketStatus);
   async function save() {
-    const { error } = await supabase.from("tickets").update({ status, assignee: assignee || null, support_notes: notes || null }).eq("id", ticket.id);
+    if (needsNote && !notes.trim()) { toast.error("Escreva um parecer para o usuário."); return; }
+    const { error } = await supabase.from("tickets").update({ status, assignee: assignee || null, support_notes: notes.trim() || null }).eq("id", ticket.id);
     if (error) { toast.error(error.message); return; }
     toast.success("Chamado atualizado");
     onSaved();
@@ -260,7 +262,7 @@ function TicketDialog({ ticket, me, onClose, onSaved }: { ticket: Ticket; me: st
             <Label>Status</Label>
             <Select value={status} onValueChange={setStatus}>
               <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
-              <SelectContent>{Object.entries(STATUS_LABEL).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}</SelectContent>
+              <SelectContent>{SELECTABLE_STATUSES.map((k) => <SelectItem key={k} value={k}>{STATUS_LABEL[k]}</SelectItem>)}</SelectContent>
             </Select>
           </div>
           <div>
@@ -271,8 +273,8 @@ function TicketDialog({ ticket, me, onClose, onSaved }: { ticket: Ticket; me: st
             </div>
           </div>
         </div>
-        <div><Label>Notas do suporte</Label><Textarea className="mt-1" rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} /></div>
-        <Button onClick={save}>Salvar</Button>
+        <div><Label>Parecer para o usuário {needsNote ? "*" : "(opcional)"}</Label><Textarea className="mt-1" rows={3} value={notes} placeholder={status === "em_andamento" ? "Ex.: Aguardando chegada do cabo até dia 30/10" : ""} onChange={(e) => setNotes(e.target.value)} /></div>
+        <Button onClick={save} disabled={needsNote && !notes.trim()}>Salvar</Button>
       </DialogContent>
     </Dialog>
   );
