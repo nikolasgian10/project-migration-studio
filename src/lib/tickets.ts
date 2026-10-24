@@ -1,3 +1,5 @@
+export const MINI_FABRICAS = ["MFAN", "MFSC", "MFCC", "MFBL", "MFBR", "MFBA", "MFPA"] as const;
+
 export type TicketType = "instalacao" | "mascara_errada" | "usuario_sem_acesso" | "criacao_usuario" | "outros";
 export type TicketStatus = "aberto" | "em_analise" | "em_andamento" | "em_execucao" | "resolvido" | "cancelado";
 

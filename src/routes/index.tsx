@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { TICKET_TYPES, detectComputerName, type TicketType } from "@/lib/tickets";
+import { MINI_FABRICAS, TICKET_TYPES, detectComputerName, type TicketType } from "@/lib/tickets";
 import { ComputerOpenTickets } from "@/components/computer-open-tickets";
 import { BrandLogos } from "@/components/brand-logos";
 
@@ -29,13 +29,11 @@ export const Route = createFileRoute("/")({
 
 const FIELDS: Partial<Record<TicketType, { key: string; label: string }[]>> = {
   instalacao: [
-    { key: "mini_fabrica", label: "Mini fábrica" },
     { key: "computer_name_maquina", label: "Computer name da máquina" },
     { key: "operacao", label: "Operação" },
     { key: "bp", label: "BP da máquina" },
   ],
   mascara_errada: [
-    { key: "mini_fabrica", label: "Mini fábrica" },
     { key: "operacao", label: "Operação" },
   ],
   usuario_sem_acesso: [
@@ -45,7 +43,6 @@ const FIELDS: Partial<Record<TicketType, { key: string; label: string }[]>> = {
   criacao_usuario: [
     { key: "nome", label: "Nome" },
     { key: "np", label: "NP" },
-    { key: "mini_fabrica", label: "Mini fábrica" },
     { key: "operacao_departamento", label: "Operação / Departamento" },
   ],
 };
@@ -58,6 +55,7 @@ function Index() {
   const [details, setDetails] = useState<Record<string, string>>({});
   const [requester, setRequester] = useState("");
   const [description, setDescription] = useState("");
+  const [miniFabrica, setMiniFabrica] = useState("");
   const [sending, setSending] = useState(false);
   const [done, setDone] = useState<number | null>(null);
   const [lookupComputer, setLookupComputer] = useState("");
@@ -76,12 +74,12 @@ function Index() {
   }, [computer]);
   const fields = type ? FIELDS[type] ?? [] : [];
   const needsDescription = type === "mascara_errada" || type === "outros";
-  const valid = computer && type && fields.every((f) => details[f.key]?.trim()) && (!needsDescription || description.trim());
+  const valid = computer && type && miniFabrica && fields.every((f) => details[f.key]?.trim()) && (!needsDescription || description.trim());
 
   async function submit() {
     if (!valid || !type) return;
     setSending(true);
-    const clean = Object.fromEntries(fields.map((f) => [f.key, (details[f.key] ?? "").trim()]));
+    const clean = { ...Object.fromEntries(fields.map((f) => [f.key, (details[f.key] ?? "").trim()])), mini_fabrica: miniFabrica };
     const { data, error } = await supabase.rpc("create_ticket", {
       _computer_name: computer,
       _ticket_type: type,
@@ -95,7 +93,7 @@ function Index() {
   }
 
   function reset() {
-    setDone(null); setType(null); setDetails({}); setDescription("");
+    setDone(null); setType(null); setDetails({}); setDescription(""); setMiniFabrica("");
   }
 
   return (
@@ -181,6 +179,13 @@ function Index() {
             {computer && type && (
               <section className="space-y-4 rounded-lg border bg-card p-6">
                 <h2 className="font-semibold">3. Informações</h2>
+                <div>
+                  <Label>Mini fábrica *</Label>
+                  <Select value={miniFabrica} onValueChange={setMiniFabrica}>
+                    <SelectTrigger className="mt-1" aria-label="Mini fábrica"><SelectValue placeholder="Selecione a mini fábrica" /></SelectTrigger>
+                    <SelectContent>{MINI_FABRICAS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+                  </Select>
+                </div>
                 {fields.map((f) => (
                   <div key={f.key}>
                     <Label>{f.label} *</Label>

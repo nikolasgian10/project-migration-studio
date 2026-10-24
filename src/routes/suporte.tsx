@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { normalizeNp, npToEmail } from "@/lib/np";
 import { listSupportUsers, createSupportUser, removeSupportUser } from "@/lib/support-users.functions";
-import { DETAIL_LABEL, SELECTABLE_STATUSES, STATUS_LABEL, STATUS_REQUIRES_NOTE, TICKET_TYPES, type TicketStatus, type TicketType } from "@/lib/tickets";
+import { DETAIL_LABEL, MINI_FABRICAS, SELECTABLE_STATUSES, STATUS_LABEL, STATUS_REQUIRES_NOTE, TICKET_TYPES, type TicketStatus, type TicketType } from "@/lib/tickets";
 import { BrandLogos } from "@/components/brand-logos";
 
 export const Route = createFileRoute("/suporte")({
@@ -138,6 +138,7 @@ function Board({ session }: { session: Session }) {
   const [q, setQ] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  const [mf, setMf] = useState("todas");
   const [open, setOpen] = useState<Ticket | null>(null);
 
   const load = useCallback(async () => {
@@ -158,8 +159,8 @@ function Board({ session }: { session: Session }) {
   const inPeriod = useMemo(() => {
     const start = from ? new Date(`${from}T00:00:00`).getTime() : -Infinity;
     const end = to ? new Date(`${to}T23:59:59.999`).getTime() : Infinity;
-    return tickets.filter((t) => { const d = new Date(t.created_at).getTime(); return d >= start && d <= end; });
-  }, [tickets, from, to]);
+    return tickets.filter((t) => { const d = new Date(t.created_at).getTime(); return d >= start && d <= end && (mf === "todas" || t.details?.mini_fabrica === mf); });
+  }, [tickets, from, to, mf]);
 
   const list = useMemo(() => inPeriod.filter((t) =>
     (status === "todos" || (status === "ativos" ? !["resolvido", "cancelado"].includes(t.status) : t.status === status)) &&
@@ -186,8 +187,9 @@ function Board({ session }: { session: Session }) {
       <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-card p-4">
         <div><Label htmlFor="from">De</Label><Input id="from" type="date" className="mt-1 w-44" value={from} onChange={(e) => setFrom(e.target.value)} /></div>
         <div><Label htmlFor="to">Até</Label><Input id="to" type="date" className="mt-1 w-44" value={to} onChange={(e) => setTo(e.target.value)} /></div>
-        {(from || to) && <Button variant="ghost" onClick={() => { setFrom(""); setTo(""); }}>Limpar período</Button>}
-        <p className="pb-2 text-sm text-muted-foreground">{inPeriod.length} chamado(s) no período</p>
+        <div><Label>Mini fábrica</Label><Select value={mf} onValueChange={setMf}><SelectTrigger className="mt-1 w-40" aria-label="Mini fábrica"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todas">Todas</SelectItem>{MINI_FABRICAS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent></Select></div>
+        {(from || to || mf !== "todas") && <Button variant="ghost" onClick={() => { setFrom(""); setTo(""); setMf("todas"); }}>Limpar filtros</Button>}
+        <p className="pb-2 text-sm text-muted-foreground">{inPeriod.length} chamado(s) no filtro</p>
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
