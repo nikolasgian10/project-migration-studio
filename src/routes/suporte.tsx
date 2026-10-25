@@ -12,7 +12,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { normalizeNp, npToEmail } from "@/lib/np";
 import { listSupportUsers, createSupportUser, removeSupportUser } from "@/lib/support-users.functions";
-import { countByMiniFabrica, DETAIL_LABEL, isOtherMiniFabrica, MINI_FABRICAS, SELECTABLE_STATUSES, STATUS_LABEL, STATUS_REQUIRES_NOTE, TICKET_TYPES, type TicketStatus, type TicketType } from "@/lib/tickets";
+import { countByMiniFabrica, DETAIL_LABEL, SELECTABLE_STATUSES, STATUS_LABEL, STATUS_REQUIRES_NOTE, TICKET_TYPES, type TicketStatus, type TicketType } from "@/lib/tickets";
+import { useMiniFabricas } from "@/lib/mini-fabricas";
+import { MiniFabricaManager } from "@/components/mini-fabrica-manager";
 import { BrandLogos } from "@/components/brand-logos";
 
 export const Route = createFileRoute("/suporte")({
@@ -130,6 +132,7 @@ function Users({ meId }: { meId: string }) {
 }
 
 function Board({ session }: { session: Session }) {
+  const { data: miniFabricas = [], isError: factoriesFailed, refetch: reloadFactories } = useMiniFabricas();
   const [isSupport, setIsSupport] = useState<boolean | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -164,10 +167,9 @@ function Board({ session }: { session: Session }) {
 
   /** Contagem por mini fábrica no período: não muda ao escolher uma delas. */
   const mfCounts = useMemo(() => countByMiniFabrica(inPeriod), [inPeriod]);
-  const otherMf = useMemo(() => inPeriod.filter((t) => isOtherMiniFabrica(t.details)).length, [inPeriod]);
 
   const mfFiltered = useMemo(() => inPeriod.filter((t) =>
-    mf === "todas" ? true : mf === "demais" ? isOtherMiniFabrica(t.details) : t.details?.["mini_fabrica"] === mf
+    mf === "todas" ? true : t.details?.["mini_fabrica"] === mf
   ), [inPeriod, mf]);
 
   const list = useMemo(() => mfFiltered.filter((t) =>
@@ -197,7 +199,8 @@ function Board({ session }: { session: Session }) {
       <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-card p-4">
         <div><Label htmlFor="from">De</Label><Input id="from" type="date" className="mt-1 w-44" value={from} onChange={(e) => setFrom(e.target.value)} /></div>
         <div><Label htmlFor="to">Até</Label><Input id="to" type="date" className="mt-1 w-44" value={to} onChange={(e) => setTo(e.target.value)} /></div>
-        <div><Label>Mini fábrica</Label><Select value={mf} onValueChange={setMf}><SelectTrigger className="mt-1 w-40" aria-label="Mini fábrica"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todas">Todas</SelectItem>{MINI_FABRICAS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}<SelectItem value="demais">Demais</SelectItem></SelectContent></Select></div>
+        <div><Label>Mini fábrica</Label><Select value={mf} onValueChange={setMf}><SelectTrigger className="mt-1 w-40" aria-label="Mini fábrica"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todas">Todas</SelectItem>{miniFabricas.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent></Select></div>
+        {factoriesFailed && <Button variant="outline" onClick={() => reloadFactories()}>Recarregar mini fábricas</Button>}
         {(from || to || mf !== "todas") && <Button variant="ghost" onClick={() => { setFrom(""); setTo(""); setMf("todas"); }}>Limpar filtros</Button>}
         <p className="pb-2 text-sm text-muted-foreground">{mfFiltered.length} chamado(s) no filtro</p>
       </div>
@@ -216,14 +219,11 @@ function Board({ session }: { session: Session }) {
         <button onClick={() => setMf("todas")} className={`rounded-full border px-3 py-1.5 text-sm ${mf === "todas" ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:bg-muted"}`}>
           Todas <span className="font-mono">{inPeriod.length}</span>
         </button>
-        {MINI_FABRICAS.map((m) => (
-          <button key={m} onClick={() => setMf(m)} className={`rounded-full border px-3 py-1.5 text-sm ${mf === m ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:bg-muted"}`}>
+        {miniFabricas.map((m) => (
+          <Button variant="outline" key={m} onClick={() => setMf(m)} className={`rounded-full border px-3 py-1.5 text-sm ${mf === m ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:bg-muted"}`}>
             {m} <span className="font-mono">{mfCounts[m] ?? 0}</span>
-          </button>
+          </Button>
         ))}
-        <button onClick={() => setMf("demais")} className={`rounded-full border px-3 py-1.5 text-sm ${mf === "demais" ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:bg-muted"}`}>
-          Demais <span className="font-mono">{otherMf}</span>
-        </button>
       </div>
 
 
@@ -270,6 +270,7 @@ function Board({ session }: { session: Session }) {
         </table>
       </div>
 
+      {isAdmin && <MiniFabricaManager />}
       {isAdmin && <Users meId={session.user.id} />}
 
       {open && <TicketDialog ticket={open} me={String(session.user.user_metadata?.["name"] || session.user.user_metadata?.["np"] || "")} onClose={() => setOpen(null)} onSaved={() => { setOpen(null); load(); }} />}
