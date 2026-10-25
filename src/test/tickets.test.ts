@@ -7,7 +7,7 @@ describe("detectComputerName", () => {
   it("vazio quando não há nada", () => expect(detectComputerName("", null)).toBe(""));
 });
 
-import { countByMiniFabrica } from "@/lib/tickets";
+import { countByMiniFabrica, isOtherMiniFabrica } from "@/lib/tickets";
 describe("contagem por mini fábrica", () => {
   it("soma por mini fábrica e ignora chamados sem mini fábrica", () => {
     expect(countByMiniFabrica([
@@ -17,6 +17,11 @@ describe("contagem por mini fábrica", () => {
       { details: {} },
       { details: null },
     ])).toEqual({ MFAN: 2, MFSC: 1 });
+  });
+  it("trata como demais o que não está na lista", () => {
+    expect(isOtherMiniFabrica({ mini_fabrica: "Qualidade" })).toBe(true);
+    expect(isOtherMiniFabrica({ mini_fabrica: "MFAN" })).toBe(false);
+    expect(isOtherMiniFabrica({})).toBe(true);
   });
 });
 
