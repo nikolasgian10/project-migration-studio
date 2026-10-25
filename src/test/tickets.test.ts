@@ -7,6 +7,24 @@ describe("detectComputerName", () => {
   it("vazio quando não há nada", () => expect(detectComputerName("", null)).toBe(""));
 });
 
+import { countByMiniFabrica, isOtherMiniFabrica } from "@/lib/tickets";
+describe("contagem por mini fábrica", () => {
+  it("soma por mini fábrica e ignora chamados sem mini fábrica", () => {
+    expect(countByMiniFabrica([
+      { details: { mini_fabrica: "MFAN" } },
+      { details: { mini_fabrica: "MFAN" } },
+      { details: { mini_fabrica: "MFSC" } },
+      { details: {} },
+      { details: null },
+    ])).toEqual({ MFAN: 2, MFSC: 1 });
+  });
+  it("trata como demais o que não está na lista", () => {
+    expect(isOtherMiniFabrica({ mini_fabrica: "Qualidade" })).toBe(true);
+    expect(isOtherMiniFabrica({ mini_fabrica: "MFAN" })).toBe(false);
+    expect(isOtherMiniFabrica({})).toBe(true);
+  });
+});
+
 import { isVisibleToUser as vis, SELECTABLE_STATUSES as SEL, STATUS_REQUIRES_NOTE as REQ } from "@/lib/tickets";
 describe("regras de visibilidade e status", () => {
   const now = new Date("2026-10-24T12:00:00Z").getTime();
