@@ -10,4 +10,5 @@
 <!-- LOVABLE:END -->
 
 - Staff login maps NP to a synthetic email (src/lib/np.ts); passwords are set via the service-role-only admin_set_password SQL function so short PINs bypass the auth minimum length.
+- Mini-factory options come from the public mini_fabricas catalog via shared query options; administrator-only inserts are enforced by RLS so forms and filters share durable configuration.
 - Public computer ticket lookups use a narrowly scoped RPC exposing only number, type, status and creation date for exact computer matches; ticket details and staff data remain private.

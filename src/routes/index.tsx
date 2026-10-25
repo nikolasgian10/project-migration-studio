@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MINI_FABRICAS, TICKET_TYPES, detectComputerName, type TicketType } from "@/lib/tickets";
+import { TICKET_TYPES, detectComputerName, type TicketType } from "@/lib/tickets";
+import { useMiniFabricas } from "@/lib/mini-fabricas";
 import { ComputerOpenTickets } from "@/components/computer-open-tickets";
 import { BrandLogos } from "@/components/brand-logos";
 
@@ -48,6 +49,7 @@ const FIELDS: Partial<Record<TicketType, { key: string; label: string }[]>> = {
 };
 
 function Index() {
+  const { data: miniFabricas = [], isPending: loadingFactories, isError: factoriesFailed, refetch: reloadFactories } = useMiniFabricas();
   const [detected, setDetected] = useState("");
   const [mode, setMode] = useState<"this" | "other">("this");
   const [other, setOther] = useState("");
@@ -74,7 +76,7 @@ function Index() {
   }, [computer]);
   const fields = type ? FIELDS[type] ?? [] : [];
   const needsDescription = type === "mascara_errada" || type === "outros";
-  const valid = computer && type && miniFabrica && fields.every((f) => details[f.key]?.trim()) && (!needsDescription || description.trim());
+  const valid = computer && type && miniFabricas.includes(miniFabrica) && fields.every((f) => details[f.key]?.trim()) && (!needsDescription || description.trim());
 
   async function submit() {
     if (!valid || !type) return;
@@ -182,9 +184,10 @@ function Index() {
                 <div>
                   <Label>Mini fábrica *</Label>
                   <Select value={miniFabrica} onValueChange={setMiniFabrica}>
-                    <SelectTrigger className="mt-1" aria-label="Mini fábrica"><SelectValue placeholder="Selecione a mini fábrica" /></SelectTrigger>
-                    <SelectContent>{MINI_FABRICAS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
+                    <SelectTrigger className="mt-1" aria-label="Mini fábrica" disabled={loadingFactories || factoriesFailed}><SelectValue placeholder={loadingFactories ? "Carregando..." : "Selecione a mini fábrica"} /></SelectTrigger>
+                    <SelectContent>{miniFabricas.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent>
                   </Select>
+                  {factoriesFailed && <div className="mt-2 text-sm text-destructive">Não foi possível carregar as mini fábricas. <Button variant="ghost" size="sm" onClick={() => reloadFactories()}>Tentar novamente</Button></div>}
                 </div>
                 {fields.map((f) => (
                   <div key={f.key}>
