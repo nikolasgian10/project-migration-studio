@@ -62,3 +62,10 @@ export function countByMiniFabrica(tickets: { details?: Record<string, string> |
   return c;
 }
 
+/** Mini fábrica fora da lista oficial (chamados antigos preenchidos à mão). */
+export function isOtherMiniFabrica(details?: Record<string, string> | null): boolean {
+  const m = details?.["mini_fabrica"];
+  return !m || !(MINI_FABRICAS as readonly string[]).includes(m);
+}
+
+

@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { normalizeNp, npToEmail } from "@/lib/np";
 import { listSupportUsers, createSupportUser, removeSupportUser } from "@/lib/support-users.functions";
-import { countByMiniFabrica, DETAIL_LABEL, MINI_FABRICAS, SELECTABLE_STATUSES, STATUS_LABEL, STATUS_REQUIRES_NOTE, TICKET_TYPES, type TicketStatus, type TicketType } from "@/lib/tickets";
+import { countByMiniFabrica, DETAIL_LABEL, isOtherMiniFabrica, MINI_FABRICAS, SELECTABLE_STATUSES, STATUS_LABEL, STATUS_REQUIRES_NOTE, TICKET_TYPES, type TicketStatus, type TicketType } from "@/lib/tickets";
 import { BrandLogos } from "@/components/brand-logos";
 
 export const Route = createFileRoute("/suporte")({
@@ -159,22 +159,29 @@ function Board({ session }: { session: Session }) {
   const inPeriod = useMemo(() => {
     const start = from ? new Date(`${from}T00:00:00`).getTime() : -Infinity;
     const end = to ? new Date(`${to}T23:59:59.999`).getTime() : Infinity;
-    return tickets.filter((t) => { const d = new Date(t.created_at).getTime(); return d >= start && d <= end && (mf === "todas" || t.details?.["mini_fabrica"] === mf); });
-  }, [tickets, from, to, mf]);
+    return tickets.filter((t) => { const d = new Date(t.created_at).getTime(); return d >= start && d <= end; });
+  }, [tickets, from, to]);
 
-  const list = useMemo(() => inPeriod.filter((t) =>
+  /** Contagem por mini fábrica no período: não muda ao escolher uma delas. */
+  const mfCounts = useMemo(() => countByMiniFabrica(inPeriod), [inPeriod]);
+  const otherMf = useMemo(() => inPeriod.filter((t) => isOtherMiniFabrica(t.details)).length, [inPeriod]);
+
+  const mfFiltered = useMemo(() => inPeriod.filter((t) =>
+    mf === "todas" ? true : mf === "demais" ? isOtherMiniFabrica(t.details) : t.details?.["mini_fabrica"] === mf
+  ), [inPeriod, mf]);
+
+  const list = useMemo(() => mfFiltered.filter((t) =>
     (status === "todos" || (status === "ativos" ? !["resolvido", "cancelado"].includes(t.status) : t.status === status)) &&
     (type === "todos" || t.ticket_type === type) &&
     (!q || `${t.number} ${t.computer_name} ${t.requester_name ?? ""} ${JSON.stringify(t.details)}`.toLowerCase().includes(q.toLowerCase()))
-  ), [inPeriod, status, type, q]);
+  ), [mfFiltered, status, type, q]);
 
   const counts = useMemo(() => {
     const c: Record<string, number> = {};
-    inPeriod.forEach((t) => (c[t.status] = (c[t.status] ?? 0) + 1));
+    mfFiltered.forEach((t) => (c[t.status] = (c[t.status] ?? 0) + 1));
     return c;
-  }, [inPeriod]);
+  }, [mfFiltered]);
 
-  const mfCounts = useMemo(() => countByMiniFabrica(inPeriod), [inPeriod]);
 
 
   if (isSupport === null) return null;
@@ -190,9 +197,9 @@ function Board({ session }: { session: Session }) {
       <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-card p-4">
         <div><Label htmlFor="from">De</Label><Input id="from" type="date" className="mt-1 w-44" value={from} onChange={(e) => setFrom(e.target.value)} /></div>
         <div><Label htmlFor="to">Até</Label><Input id="to" type="date" className="mt-1 w-44" value={to} onChange={(e) => setTo(e.target.value)} /></div>
-        <div><Label>Mini fábrica</Label><Select value={mf} onValueChange={setMf}><SelectTrigger className="mt-1 w-40" aria-label="Mini fábrica"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todas">Todas</SelectItem>{MINI_FABRICAS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}</SelectContent></Select></div>
+        <div><Label>Mini fábrica</Label><Select value={mf} onValueChange={setMf}><SelectTrigger className="mt-1 w-40" aria-label="Mini fábrica"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="todas">Todas</SelectItem>{MINI_FABRICAS.map((m) => <SelectItem key={m} value={m}>{m}</SelectItem>)}<SelectItem value="demais">Demais</SelectItem></SelectContent></Select></div>
         {(from || to || mf !== "todas") && <Button variant="ghost" onClick={() => { setFrom(""); setTo(""); setMf("todas"); }}>Limpar filtros</Button>}
-        <p className="pb-2 text-sm text-muted-foreground">{inPeriod.length} chamado(s) no filtro</p>
+        <p className="pb-2 text-sm text-muted-foreground">{mfFiltered.length} chamado(s) no filtro</p>
       </div>
 
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
@@ -214,6 +221,9 @@ function Board({ session }: { session: Session }) {
             {m} <span className="font-mono">{mfCounts[m] ?? 0}</span>
           </button>
         ))}
+        <button onClick={() => setMf("demais")} className={`rounded-full border px-3 py-1.5 text-sm ${mf === "demais" ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:bg-muted"}`}>
+          Demais <span className="font-mono">{otherMf}</span>
+        </button>
       </div>
 
 
