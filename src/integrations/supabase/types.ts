@@ -14,6 +14,21 @@ export type Database = {
   }
   public: {
     Tables: {
+      mini_fabricas: {
+        Row: {
+          created_at: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          name?: string
+        }
+        Relationships: []
+      }
       tickets: {
         Row: {
           assignee: string | null

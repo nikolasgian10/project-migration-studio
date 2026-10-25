@@ -1,2 +1,4 @@
 - [x] Exibir resumo seguro dos chamados em aberto e em andamento do computador selecionado.
 - [x] Verificar consulta, isolamento por computador e exibição na página.
+- [ ] Remover Demais e usar mini fábricas do banco no formulário e nos filtros.
+- [ ] Permitir cadastro de mini fábricas por administradores e verificar permissões e fluxo.
