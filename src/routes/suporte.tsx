@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { normalizeNp, npToEmail } from "@/lib/np";
 import { listSupportUsers, createSupportUser, removeSupportUser } from "@/lib/support-users.functions";
-import { DETAIL_LABEL, MINI_FABRICAS, SELECTABLE_STATUSES, STATUS_LABEL, STATUS_REQUIRES_NOTE, TICKET_TYPES, type TicketStatus, type TicketType } from "@/lib/tickets";
+import { countByMiniFabrica, DETAIL_LABEL, MINI_FABRICAS, SELECTABLE_STATUSES, STATUS_LABEL, STATUS_REQUIRES_NOTE, TICKET_TYPES, type TicketStatus, type TicketType } from "@/lib/tickets";
 import { BrandLogos } from "@/components/brand-logos";
 
 export const Route = createFileRoute("/suporte")({
@@ -174,6 +174,9 @@ function Board({ session }: { session: Session }) {
     return c;
   }, [inPeriod]);
 
+  const mfCounts = useMemo(() => countByMiniFabrica(inPeriod), [inPeriod]);
+
+
   if (isSupport === null) return null;
   if (!isSupport) return (
     <div className="mx-auto max-w-md rounded-lg border bg-card p-6 text-center">
@@ -201,6 +204,19 @@ function Board({ session }: { session: Session }) {
         ))}
       </div>
 
+      <div className="flex flex-wrap items-center gap-2">
+        <p className="text-sm text-muted-foreground">Mini fábrica:</p>
+        <button onClick={() => setMf("todas")} className={`rounded-full border px-3 py-1.5 text-sm ${mf === "todas" ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:bg-muted"}`}>
+          Todas <span className="font-mono">{inPeriod.length}</span>
+        </button>
+        {MINI_FABRICAS.map((m) => (
+          <button key={m} onClick={() => setMf(m)} className={`rounded-full border px-3 py-1.5 text-sm ${mf === m ? "border-primary bg-primary text-primary-foreground" : "bg-card hover:bg-muted"}`}>
+            {m} <span className="font-mono">{mfCounts[m] ?? 0}</span>
+          </button>
+        ))}
+      </div>
+
+
       <div className="flex flex-wrap gap-3">
         <Input className="max-w-xs" placeholder="Buscar nº, computer name, nome..." value={q} onChange={(e) => setQ(e.target.value)} />
         <Select value={status} onValueChange={setStatus}>
@@ -224,13 +240,14 @@ function Board({ session }: { session: Session }) {
       <div className="overflow-hidden rounded-lg border bg-card">
         <table className="w-full text-sm">
           <thead className="bg-muted text-left text-muted-foreground">
-            <tr><th className="p-3">Nº</th><th className="p-3">Computador</th><th className="p-3">Tipo</th><th className="p-3">Solicitante</th><th className="p-3">Responsável</th><th className="p-3">Aberto em</th><th className="p-3">Status</th></tr>
+            <tr><th className="p-3">Nº</th><th className="p-3">Computador</th><th className="p-3">Mini fábrica</th><th className="p-3">Tipo</th><th className="p-3">Solicitante</th><th className="p-3">Responsável</th><th className="p-3">Aberto em</th><th className="p-3">Status</th></tr>
           </thead>
           <tbody>
             {list.map((t) => (
               <tr key={t.id} onClick={() => setOpen(t)} className="cursor-pointer border-t hover:bg-muted/50">
                 <td className="p-3 font-mono">#{t.number}</td>
                 <td className="p-3 font-mono">{t.computer_name}</td>
+                <td className="p-3 font-mono">{t.details?.["mini_fabrica"] ?? "—"}</td>
                 <td className="p-3">{TICKET_TYPES[t.ticket_type as TicketType]?.label}</td>
                 <td className="p-3">{t.requester_name ?? "—"}</td>
                 <td className="p-3">{t.assignee ?? "—"}</td>
@@ -238,7 +255,7 @@ function Board({ session }: { session: Session }) {
                 <td className="p-3"><Badge className={STATUS_STYLE[t.status]}>{STATUS_LABEL[t.status as TicketStatus]}</Badge></td>
               </tr>
             ))}
-            {!list.length && <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">Nenhum chamado.</td></tr>}
+            {!list.length && <tr><td colSpan={8} className="p-8 text-center text-muted-foreground">Nenhum chamado.</td></tr>}
           </tbody>
         </table>
       </div>

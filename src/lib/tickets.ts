@@ -51,3 +51,14 @@ export function detectComputerName(search: string, stored: string | null): strin
   const v = p.get("pc") || p.get("computer") || p.get("computername");
   return (v || stored || "").trim().toUpperCase();
 }
+
+/** Conta chamados por mini fábrica (para a lista de contagem na gestão). */
+export function countByMiniFabrica(tickets: { details?: Record<string, string> | null }[]): Record<string, number> {
+  const c: Record<string, number> = {};
+  for (const t of tickets) {
+    const m = t.details?.["mini_fabrica"];
+    if (m) c[m] = (c[m] ?? 0) + 1;
+  }
+  return c;
+}
+
