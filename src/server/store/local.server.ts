@@ -8,7 +8,7 @@ const DEFAULT_FACTORIES = ["MFAN", "MFSC", "MFCC", "MFBL", "MFBR", "MFBA", "MFPA
 
 /** Armazena tudo em um arquivo JSON (padrão: ./data/qdas-dados.json). Usado até o SharePoint ser conectado. */
 export function createLocalStore(seedAdmin: () => Promise<Omit<UserRow, "id">>): DataStore {
-  const file = resolve(process.env.QDAS_DATA_FILE || "data/qdas-dados.json");
+  const file = resolve(process.env["QDAS_DATA_FILE"] || "data/qdas-dados.json");
   let queue: Promise<unknown> = Promise.resolve();
 
   async function read(): Promise<Db> {
