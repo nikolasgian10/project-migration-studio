@@ -1,8 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import type { Session } from "@supabase/supabase-js";
-import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,8 +9,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { normalizeNp, npToEmail } from "@/lib/np";
-import { listSupportUsers, createSupportUser, removeSupportUser } from "@/lib/support-users.functions";
+import { normalizeNp } from "@/lib/np";
+import { getMe, login, logout, listTickets, updateTicket, listSupportUsers, createSupportUser, removeSupportUser } from "@/lib/api.functions";
 import { countByMiniFabrica, DETAIL_LABEL, SELECTABLE_STATUSES, STATUS_LABEL, STATUS_REQUIRES_NOTE, TICKET_TYPES, type TicketStatus, type TicketType } from "@/lib/tickets";
 import { useMiniFabricas } from "@/lib/mini-fabricas";
 import { MiniFabricaManager } from "@/components/mini-fabrica-manager";
@@ -47,14 +46,9 @@ const STATUS_STYLE: Record<string, string> = {
 };
 
 function Suporte() {
-  const [session, setSession] = useState<Session | null>(null);
-  const [ready, setReady] = useState(false);
-  useEffect(() => {
-    const { data } = supabase.auth.onAuthStateChange((_e, s) => setSession(s));
-    supabase.auth.getSession().then(({ data }) => { setSession(data.session); setReady(true); });
-    return () => data.subscription.unsubscribe();
-  }, []);
-  if (!ready) return null;
+  const qc = useQueryClient();
+  const { data: session, isPending } = useQuery({ queryKey: ["me"], queryFn: () => getMe() });
+  if (isPending) return null;
   return (
     <div className="min-h-screen">
       <header className="header-band">
@@ -66,16 +60,16 @@ function Suporte() {
           </div>
           <div className="flex items-center gap-4 text-sm">
             <Link to="/" className="opacity-90 hover:opacity-100">Abrir chamado</Link>
-            {session && <button className="opacity-90 hover:opacity-100" onClick={() => supabase.auth.signOut()}>Sair</button>}
+            {session && <button className="opacity-90 hover:opacity-100" onClick={async () => { await logout(); qc.setQueryData(["me"], null); }}>Sair</button>}
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-6xl px-6 py-8">{session ? <Board session={session} /> : <Login />}</main>
+      <main className="mx-auto max-w-6xl px-6 py-8">{session ? <Board session={session} /> : <Login onDone={() => qc.invalidateQueries({ queryKey: ["me"] })} />}</main>
     </div>
   );
 }
 
-function Login() {
+function Login({ onDone }: { onDone: () => void }) {
   const [np, setNp] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -83,9 +77,12 @@ function Login() {
     const n = normalizeNp(np);
     if (!n) { toast.error("NP inválido."); return; }
     setBusy(true);
-    const { error } = await supabase.auth.signInWithPassword({ email: npToEmail(n), password });
-    setBusy(false);
-    if (error) toast.error(/fetch|network/i.test(error.message) || error.name === "AuthRetryableFetchError" ? "Sem conexão com o servidor. Verifique sua rede (firewall/VPN da empresa pode estar bloqueando)." : "NP ou senha incorretos.");
+    try {
+      const r = await login({ data: { np: n, password } });
+      if (r.ok) onDone(); else toast.error("NP ou senha incorretos.");
+    } catch {
+      toast.error("Sem conexão com o servidor. Verifique sua rede.");
+    } finally { setBusy(false); }
   }
   return (
     <form className="mx-auto max-w-sm space-y-4 rounded-lg border bg-card p-6" onSubmit={(e) => { e.preventDefault(); go(); }}>
@@ -131,10 +128,11 @@ function Users({ meId }: { meId: string }) {
   );
 }
 
-function Board({ session }: { session: Session }) {
+type Me = { id: string; np: string; name: string; admin: boolean };
+
+function Board({ session }: { session: Me }) {
   const { data: miniFabricas = [], isError: factoriesFailed, refetch: reloadFactories } = useMiniFabricas();
-  const [isSupport, setIsSupport] = useState<boolean | null>(null);
-  const [isAdmin, setIsAdmin] = useState(false);
+  const isAdmin = session.admin;
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [status, setStatus] = useState<string>("ativos");
   const [type, setType] = useState<string>("todos");
@@ -145,19 +143,12 @@ function Board({ session }: { session: Session }) {
   const [open, setOpen] = useState<Ticket | null>(null);
 
   const load = useCallback(async () => {
-    const { data, error } = await supabase.from("tickets").select("*").order("created_at", { ascending: false });
-    if (error) { toast.error(error.message); return; }
-    setTickets((data ?? []) as Ticket[]);
+    try { setTickets(await listTickets()); } catch (e) { toast.error((e as Error).message); }
   }, []);
 
   useEffect(() => {
-    // roles and tickets load in parallel (RLS returns no tickets to non-support users)
     load();
-    supabase.from("user_roles").select("role").eq("user_id", session.user.id).then(({ data }) => {
-      setIsSupport(!!data?.some((r) => r.role === "support"));
-      setIsAdmin(!!data?.some((r) => r.role === "admin"));
-    });
-  }, [session.user.id, load]);
+  }, [load]);
 
   const inPeriod = useMemo(() => {
     const start = from ? new Date(`${from}T00:00:00`).getTime() : -Infinity;
@@ -185,14 +176,6 @@ function Board({ session }: { session: Session }) {
   }, [mfFiltered]);
 
 
-
-  if (isSupport === null) return null;
-  if (!isSupport) return (
-    <div className="mx-auto max-w-md rounded-lg border bg-card p-6 text-center">
-      <h2 className="font-semibold">Acesso restrito</h2>
-      <p className="mt-2 text-sm text-muted-foreground">Sua conta ainda não tem permissão de suporte. Peça a um administrador para liberar.</p>
-    </div>
-  );
 
   return (
     <div className="space-y-6">
@@ -271,9 +254,9 @@ function Board({ session }: { session: Session }) {
       </div>
 
       {isAdmin && <MiniFabricaManager />}
-      {isAdmin && <Users meId={session.user.id} />}
+      {isAdmin && <Users meId={session.id} />}
 
-      {open && <TicketDialog ticket={open} me={String(session.user.user_metadata?.["name"] || session.user.user_metadata?.["np"] || "")} onClose={() => setOpen(null)} onSaved={() => { setOpen(null); load(); }} />}
+      {open && <TicketDialog ticket={open} me={session.name || session.np} onClose={() => setOpen(null)} onSaved={() => { setOpen(null); load(); }} />}
     </div>
   );
 }
@@ -285,8 +268,8 @@ function TicketDialog({ ticket, me, onClose, onSaved }: { ticket: Ticket; me: st
   const needsNote = STATUS_REQUIRES_NOTE.includes(status as TicketStatus);
   async function save() {
     if (needsNote && !notes.trim()) { toast.error("Escreva um parecer para o usuário."); return; }
-    const { error } = await supabase.from("tickets").update({ status, assignee: assignee || null, support_notes: notes.trim() || null }).eq("id", ticket.id);
-    if (error) { toast.error(error.message); return; }
+    try { await updateTicket({ data: { id: ticket.id, status, assignee, notes } }); }
+    catch (e) { toast.error((e as Error).message); return; }
     toast.success("Chamado atualizado");
     onSaved();
   }
