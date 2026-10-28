@@ -7,7 +7,7 @@ const MAX_AGE = 60 * 60 * 12; // 12 horas
 const g = globalThis as { __qdasSecret?: string };
 function secret() {
   // Em produção defina SESSION_SECRET; sem ela, as sessões valem até reiniciar o servidor.
-  return process.env.SESSION_SECRET || (g.__qdasSecret ??= crypto.randomUUID() + crypto.randomUUID());
+  return process.env["SESSION_SECRET"] || (g.__qdasSecret ??= crypto.randomUUID() + crypto.randomUUID());
 }
 const enc = (s: string) => btoa(s).replace(/=+$/, "").replace(/\+/g, "-").replace(/\//g, "_");
 async function sign(data: string) {
@@ -18,7 +18,7 @@ async function sign(data: string) {
 
 export async function startSession(userId: string) {
   const payload = enc(JSON.stringify({ uid: userId, exp: Date.now() + MAX_AGE * 1000 }));
-  setCookie(COOKIE, `${payload}.${await sign(payload)}`, { httpOnly: true, sameSite: "lax", path: "/", maxAge: MAX_AGE, secure: process.env.NODE_ENV === "production" && process.env.SESSION_INSECURE !== "1" });
+  setCookie(COOKIE, `${payload}.${await sign(payload)}`, { httpOnly: true, sameSite: "lax", path: "/", maxAge: MAX_AGE, secure: process.env["NODE_ENV"] === "production" && process.env["SESSION_INSECURE"] !== "1" });
 }
 
 export function endSession() {

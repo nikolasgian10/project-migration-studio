@@ -12,9 +12,9 @@ export function createSharePointStore(): DataStore {
     return v;
   };
   const LISTS = {
-    tickets: process.env.SHAREPOINT_LIST_CHAMADOS || "Chamados",
-    factories: process.env.SHAREPOINT_LIST_MINIFABRICAS || "MiniFabricas",
-    users: process.env.SHAREPOINT_LIST_USUARIOS || "UsuariosSuporte",
+    tickets: process.env["SHAREPOINT_LIST_CHAMADOS"] || "Chamados",
+    factories: process.env["SHAREPOINT_LIST_MINIFABRICAS"] || "MiniFabricas",
+    users: process.env["SHAREPOINT_LIST_USUARIOS"] || "UsuariosSuporte",
   };
   let token: { value: string; exp: number } | null = null;
 
@@ -70,20 +70,20 @@ export function createSharePointStore(): DataStore {
   function toTicket(i: Item): TicketRow {
     const f = i.fields;
     let details: Record<string, string> = {};
-    try { details = JSON.parse(String(f.Detalhes || "{}")); } catch { /* campo vazio */ }
+    try { details = JSON.parse(String(f["Detalhes"] || "{}")); } catch { /* campo vazio */ }
     return {
       id: i.id,
       number: Number(i.id),
-      computer_name: String(f.Title ?? ""),
-      ticket_type: String(f.Tipo ?? ""),
-      requester_name: s(f.Solicitante),
-      description: s(f.Descricao),
+      computer_name: String(f["Title"] ?? ""),
+      ticket_type: String(f["Tipo"] ?? ""),
+      requester_name: s(f["Solicitante"]),
+      description: s(f["Descricao"]),
       details,
-      status: String(f.Status ?? "aberto"),
-      assignee: s(f.Responsavel),
-      support_notes: s(f.Parecer),
+      status: String(f["Status"] ?? "aberto"),
+      assignee: s(f["Responsavel"]),
+      support_notes: s(f["Parecer"]),
       created_at: i.createdDateTime,
-      updated_at: String(f.AtualizadoEm || i.createdDateTime),
+      updated_at: String(f["AtualizadoEm"] || i.createdDateTime),
     };
   }
 
@@ -113,7 +113,7 @@ export function createSharePointStore(): DataStore {
       });
     },
     async listMiniFabricas() {
-      return (await items(LISTS.factories)).map((i) => String(i.fields.Title ?? "")).filter(Boolean).sort();
+      return (await items(LISTS.factories)).map((i) => String(i.fields["Title"] ?? "")).filter(Boolean).sort();
     },
     async addMiniFabrica(name) {
       if ((await items(LISTS.factories, `fields/Title eq '${esc(name)}'`)).length) return false;
@@ -122,8 +122,8 @@ export function createSharePointStore(): DataStore {
     },
     async listUsers() {
       return (await items(LISTS.users)).map<UserRow>((i) => ({
-        id: i.id, name: String(i.fields.Title ?? ""), np: String(i.fields.NP ?? ""),
-        admin: Boolean(i.fields.Admin), password_hash: String(i.fields.SenhaHash ?? ""),
+        id: i.id, name: String(i.fields["Title"] ?? ""), np: String(i.fields["NP"] ?? ""),
+        admin: Boolean(i.fields["Admin"]), password_hash: String(i.fields["SenhaHash"] ?? ""),
       }));
     },
     async createUser(u) {
