@@ -2,10 +2,10 @@ import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { addMiniFabrica } from "@/lib/api.functions";
 import { normalizeMiniFabrica, miniFabricasOptions, useMiniFabricas } from "@/lib/mini-fabricas";
 
 export function MiniFabricaManager() {
@@ -18,14 +18,13 @@ export function MiniFabricaManager() {
     if (!normalized || normalized.length > 40 || busy) return;
     setBusy(true);
     try {
-      const { error } = await supabase.from("mini_fabricas").insert({ name: normalized });
-      if (error) {
-        toast.error(error.code === "23505" ? "Esta mini fábrica já está cadastrada." : "Não foi possível cadastrar a mini fábrica.");
-        return;
-      }
+      const { created } = await addMiniFabrica({ data: { name: normalized } });
+      if (!created) { toast.error("Esta mini fábrica já está cadastrada."); return; }
       setName("");
       await queryClient.invalidateQueries({ queryKey: miniFabricasOptions.queryKey });
       toast.success("Mini fábrica cadastrada");
+    } catch (e) {
+      toast.error((e as Error).message || "Não foi possível cadastrar a mini fábrica.");
     } finally { setBusy(false); }
   }
   return (

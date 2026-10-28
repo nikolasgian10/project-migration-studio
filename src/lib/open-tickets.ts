@@ -1,6 +1,5 @@
 import { queryOptions } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import { isVisibleToUser } from "@/lib/tickets";
+import { getComputerTickets } from "@/lib/api.functions";
 
 export function computerOpenTicketsOptions(computer: string) {
   const normalized = computer.trim().toUpperCase();
@@ -8,10 +7,7 @@ export function computerOpenTicketsOptions(computer: string) {
     queryKey: ["computer-open-tickets", normalized],
     queryFn: async () => {
       try {
-        const { data, error } = await supabase.rpc("get_computer_tickets", {
-          _computer_name: normalized,
-        });
-        return { tickets: (data ?? []).filter((t) => isVisibleToUser(t)), failed: Boolean(error) };
+        return { tickets: await getComputerTickets({ data: { computer: normalized } }), failed: false };
       } catch {
         return { tickets: [], failed: true };
       }

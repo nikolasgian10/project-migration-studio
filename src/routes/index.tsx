@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Suspense, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Monitor, CheckCircle2, Headset } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { createTicket } from "@/lib/api.functions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -82,16 +82,14 @@ function Index() {
     if (!valid || !type) return;
     setSending(true);
     const clean = { ...Object.fromEntries(fields.map((f) => [f.key, (details[f.key] ?? "").trim()])), mini_fabrica: miniFabrica };
-    const { data, error } = await supabase.rpc("create_ticket", {
-      _computer_name: computer,
-      _ticket_type: type,
-      _requester_name: requester,
-      _description: description,
-      _details: clean,
-    });
-    setSending(false);
-    if (error) { toast.error("Não foi possível abrir o chamado: " + error.message); return; }
-    setDone(data as number);
+    try {
+      const number = await createTicket({ data: { computer, type, requester, description, details: clean } });
+      setDone(number);
+    } catch (e) {
+      toast.error("Não foi possível abrir o chamado: " + (e as Error).message);
+    } finally {
+      setSending(false);
+    }
   }
 
   function reset() {
